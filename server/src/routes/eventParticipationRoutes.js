@@ -120,12 +120,14 @@ router.delete("/:id/leave", auth, async (req, res) => {
       content: "Ai ieșit din eveniment.",
     });
     const io = getIO();
-    if (io)
+    if (io) {
       io.to(`user_${req.userId}`).emit("receive_message", {
         roomId: `event_${event.event_id}`,
         message: { ...leaveMsg.toJSON(), sender: null },
         statusUpdate: { isFormerParticipant: true },
       });
+      io.in(`user_${req.userId}`).socketsLeave(`event_${event.event_id}`);
+    }
 
     res.json({ message: "Left the event." });
   } catch (err) {
@@ -170,12 +172,14 @@ router.delete("/:id/participants/:userId", auth, async (req, res) => {
       content: "Ai fost eliminat din eveniment.",
     });
     const io = getIO();
-    if (io)
+    if (io) {
       io.to(`user_${targetUserId}`).emit("receive_message", {
         roomId: `event_${event.event_id}`,
         message: { ...kickMsg.toJSON(), sender: null },
         statusUpdate: { isFormerParticipant: true },
       });
+      io.in(`user_${targetUserId}`).socketsLeave(`event_${event.event_id}`);
+    }
 
     res.json({ message: "Participant removed." });
   } catch (err) {

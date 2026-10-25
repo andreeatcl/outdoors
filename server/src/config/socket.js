@@ -1,5 +1,6 @@
 const { Server } = require("socket.io");
 const jwt = require("jsonwebtoken");
+const { JWT_SECRET } = require("./jwt");
 const { handleSocketEvents } = require("../socket/handlers");
 
 let io = null;
@@ -17,7 +18,7 @@ function initSocket(server) {
     const token = socket.handshake.auth?.token;
     if (!token) return next();
     try {
-      const payload = jwt.verify(token, process.env.JWT_SECRET ?? "dev-secret");
+      const payload = jwt.verify(token, JWT_SECRET);
       socket.userId = payload.userId;
     } catch {}
     next();

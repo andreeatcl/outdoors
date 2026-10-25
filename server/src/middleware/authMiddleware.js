@@ -1,4 +1,5 @@
 const jwt = require("jsonwebtoken");
+const { JWT_SECRET } = require("../config/jwt");
 
 function authMiddleware(req, res, next) {
   const auth = req.headers.authorization;
@@ -6,10 +7,7 @@ function authMiddleware(req, res, next) {
     return res.status(401).json({ error: "Missing token." });
   }
   try {
-    const payload = jwt.verify(
-      auth.slice(7),
-      process.env.JWT_SECRET ?? "dev-secret",
-    );
+    const payload = jwt.verify(auth.slice(7), JWT_SECRET);
     req.userId = payload.userId;
     next();
   } catch {

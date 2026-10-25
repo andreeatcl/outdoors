@@ -5,7 +5,6 @@ const { userAttrs, formatEvent } = require("./eventFormatter");
 const publicFields = [
   "user_id",
   "username",
-  "email",
   "first_name",
   "last_name",
   "bio",

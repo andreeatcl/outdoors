@@ -3,11 +3,10 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { body, validationResult } = require("express-validator");
 const { User } = require("../models");
+const { JWT_SECRET } = require("../config/jwt");
 
 const signToken = (userId) =>
-  jwt.sign({ userId }, process.env.JWT_SECRET ?? "dev-secret", {
-    expiresIn: "7d",
-  });
+  jwt.sign({ userId }, JWT_SECRET, { expiresIn: "7d" });
 
 const sanitizeUser = (u) => ({
   user_id: u.user_id,

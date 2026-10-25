@@ -11,22 +11,54 @@ const {
   hasUnreadNotification,
 } = require("../services/notificationService");
 
+const dmRoomFor = (a, b) => `dm_${Math.min(a, b)}_${Math.max(a, b)}`;
+
+async function canJoinRoom(userId, roomId) {
+  if (!userId || typeof roomId !== "string") return false;
+
+  const dm = roomId.match(/^dm_(\d+)_(\d+)$/);
+  if (dm) {
+    return Number(dm[1]) === userId || Number(dm[2]) === userId;
+  }
+
+  const ev = roomId.match(/^event_(\d+)$/);
+  if (ev) {
+    const eventId = Number(ev[1]);
+    const participation = await Participation.findOne({
+      where: { user_id: userId, event_id: eventId },
+    });
+    if (participation) return true;
+    const sent = await Message.findOne({
+      where: { sender_id: userId, event_id: eventId, receiver_id: null },
+    });
+    return !!sent;
+  }
+
+  return false;
+}
+
 function handleSocketEvents(io, socket) {
   if (socket.userId) {
     socket.join(`user_${socket.userId}`);
   }
 
-  socket.on("join_room", ({ roomId }) => {
-    socket.join(roomId);
+  // SECURITY FIX: prevent socket could join any room
+  socket.on("join_room", async ({ roomId } = {}) => {
+    try {
+      if (await canJoinRoom(socket.userId, roomId)) socket.join(roomId);
+    } catch (err) {
+      console.error("join_room failed:", err.message);
+    }
   });
 
   socket.on("leave_room", ({ roomId }) => {
     socket.leave(roomId);
   });
 
+  // prettier-ignore
   socket.on(
     "send_message",
-    async ({ roomId, content, receiverId, eventId }) => {
+    async ({ content, receiverId, eventId } = {}) => {
       if (!socket.userId) {
         return socket.emit("message_error", { error: "Not authenticated." });
       }
@@ -97,6 +129,9 @@ function handleSocketEvents(io, socket) {
           sender: sender?.toJSON() ?? null,
         };
 
+        const roomId = receiverId
+          ? dmRoomFor(socket.userId, Number(receiverId))
+          : `event_${Number(eventId)}`;
         io.to(roomId).emit("receive_message", { roomId, message });
 
         if (receiverId) {
